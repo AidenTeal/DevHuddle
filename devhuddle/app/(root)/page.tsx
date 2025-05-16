@@ -16,9 +16,6 @@ const Home = async () => {
         "use server"
         await signOut({redirectTo: ROUTES.SIGN_IN})
       }}>
-        <Button type="submit">
-          Sign Out
-        </Button>
 
       </form>
     </div>
