@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import localFont from "next/font/local";
 import ThemeProvider from "@/context/Theme";
-import Navbar from "@/components/navigation/navbar";
+import Navbar from "@/components/navigation/navbar/Navbar";
 import { Toaster } from "sonner";
 import { SessionProvider } from "next-auth/react";
 import { auth } from "@/auth";
@@ -21,10 +21,11 @@ const spaceGrotesk = localFont({
 
 export const metadata: Metadata = {
   title: "DevHuddle",
-  description: "A unique community-driven platform which is a combination of stack overflow, indeed, and reddit. Post questions, find topics, and interact/learn with fellow developers.",
+  description:
+    "A unique community-driven platform which is a combination of stack overflow, indeed, and reddit. Post questions, find topics, and interact/learn with fellow developers.",
   icons: {
-    icon: '/images/site-logo.svg'
-  }
+    icon: "/images/site-logo.svg",
+  },
 };
 
 const RootLayout = async ({
@@ -36,23 +37,26 @@ const RootLayout = async ({
 
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <link rel="stylesheet" type='text/css' href="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/devicon.min.css" />
+      </head>
       <SessionProvider session={session}>
-      <body
-        className={`${inter.className} ${spaceGrotesk.variable} antialiased`}
-      >
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
+        <body
+          className={`${inter.className} ${spaceGrotesk.variable} antialiased`}
         >
-          {children}
-        </ThemeProvider>
-      <Toaster />
-      </body>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+          >
+            {children}
+          </ThemeProvider>
+          <Toaster />
+        </body>
       </SessionProvider>
     </html>
   );
-}
+};
 
 export default RootLayout;
