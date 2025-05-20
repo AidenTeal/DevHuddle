@@ -6,6 +6,7 @@ import Navbar from "@/components/navigation/navbar/Navbar";
 import { Toaster } from "sonner";
 import { SessionProvider } from "next-auth/react";
 import { auth } from "@/auth";
+import { NuqsAdapter } from 'nuqs/adapters/next/app'
 
 const inter = localFont({
   src: "./fonts/InterVF.ttf",
@@ -50,7 +51,7 @@ const RootLayout = async ({
             enableSystem
             disableTransitionOnChange
           >
-            {children}
+            <NuqsAdapter>{children}</NuqsAdapter>
           </ThemeProvider>
           <Toaster />
         </body>

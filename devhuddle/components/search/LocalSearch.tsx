@@ -6,6 +6,7 @@ import Image from "next/image";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { formUrlQuery, removeKeysFromQuery } from "@/lib/url";
 import { useDebounce } from 'react-use';
+import { parseAsInteger, useQueryState } from "nuqs";
 
 type LocalSearchProps = {
     route: string,
@@ -14,38 +15,18 @@ type LocalSearchProps = {
     otherClasses: string
 }
 
-const LocalSearch = ({route, imgSrc, placeholder, otherClasses}: LocalSearchProps) => {
-    const router = useRouter();
-    const pathname = usePathname();
+const LocalSearch = ({route, imgSrc, placeholder, otherClasses}: LocalSearchProps) => { 
+    const [searchQuery, setSearchQuery] = useQueryState("query", { defaultValue: "", shallow: false})
+    
+    const [searchVal, setSearchVal] = useState("");
 
-    const searchParams = useSearchParams();
-    const query = searchParams.get("query") || "";
+    const [debouncedSearchQuery, setDebouncedSearchQuery] = useState(searchQuery);
 
-    const [searchQuery, setSearchQuery] = useState(query);
-    const [debouncedSearchQuery, setDebouncedSearchQuery] = useState(query);
-
-    useDebounce(() => setDebouncedSearchQuery(searchQuery), 1000, [searchQuery])
+    useDebounce(() => setDebouncedSearchQuery(searchVal), 500, [searchVal])
 
     useEffect(() => {
-        if (debouncedSearchQuery) {
-            const newUrl = formUrlQuery({
-                params: searchParams.toString(),
-                key: 'query',
-                value: debouncedSearchQuery
-            })
-
-            router.push(newUrl, {scroll: false})
-        } else {
-            if (pathname === route) {
-                const newUrl = removeKeysFromQuery({
-                    params: searchParams.toString(),
-                    keysToRemove: ["query"]
-                });
-
-                router.push(newUrl), {scroll: false}
-            }
-        }
-    }, [debouncedSearchQuery, router, route, searchParams, pathname])
+        setSearchQuery(debouncedSearchQuery);
+    }, [debouncedSearchQuery, setSearchQuery])
 
   return (
     <div className="background-light800_darkgradient flex min-h-[56px] grow items-center gap-4 rounded-[10px] px-4">
@@ -60,8 +41,8 @@ const LocalSearch = ({route, imgSrc, placeholder, otherClasses}: LocalSearchProp
       <Input
         type="text"
         placeholder={placeholder}
-        value={searchQuery}
-        onChange={(e) => setSearchQuery(e.target.value)}
+        value={searchVal}
+        onChange={(e) => setSearchVal(e.target.value)}
         className="paragraph-regular no-focus placeholder text-dark400_light700 border-none shadow-none outline-none"
       />
     </div>
