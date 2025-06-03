@@ -24,6 +24,7 @@ const Editor = dynamic(() => import('@/components/editor'), {
   ssr: false
 })
 
+// TODO: Some issues with the list features for the MDX editor, will need to go back and try and fix
 
 const QuestionForm = () => {
   const editorRef = useRef<MDXEditorMethods>(null);
