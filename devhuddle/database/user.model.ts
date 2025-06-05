@@ -1,6 +1,4 @@
-import { defaultSvgIcons } from "@mdxeditor/editor";
-import { model, models, Schema } from "mongoose";
-import { StringValidation } from "zod";
+import { model, models, Schema, Document } from "mongoose";
 
 export interface IUser {
     name: string;
@@ -12,6 +10,8 @@ export interface IUser {
     portfolio?: string;
     reputation?: number;
 }
+
+export interface IUserDoc extends IUser, Document {}
 
 const UserSchema = new Schema<IUser>({
     name: { type: String, required: true },

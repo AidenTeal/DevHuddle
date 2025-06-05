@@ -1,17 +1,19 @@
 import { Tag } from "lucide-react";
-import { model, models, Schema, Types } from "mongoose";
+import { Document, model, models, Schema, Types } from "mongoose";
 import { string } from "zod";
 
 export interface IQuestion {
     title: string;
     content: string;
     tags: Types.ObjectId[];
-    views?: number;
-    answers?: number;
-    upvotes?: number;
-    downvotes?: number;
+    views: number;
+    answers: number;
+    upvotes: number;
+    downvotes: number;
     author: Types.ObjectId;
 }
+
+export interface IQuestionDoc extends IQuestion, Document {}
 
 const QuestionSchema = new Schema<IQuestion>({
     title: { type: String, required: true },
