@@ -5,6 +5,7 @@ import LocalSearch from "@/components/search/LocalSearch";
 import { Button } from "@/components/ui/button";
 import { AvatarImage } from "@/constants/avatars";
 import ROUTES from "@/constants/routes";
+import { Question } from "@/types/global";
 import Link from "next/link";
 
 
