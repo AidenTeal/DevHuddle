@@ -13,6 +13,6 @@ const TagSchema = new Schema<ITag>({
     questions: { type: Number, default: 0 }
 }, { timestamps: true })
 
-const Tag = models?.tag || model<ITag>("Tag", TagSchema);
+const Tag = models?.Tag || model<ITag>("Tag", TagSchema);
 
 export default Tag;
