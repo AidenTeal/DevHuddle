@@ -20,6 +20,11 @@ import dynamic from "next/dynamic";
 import { markAsUntransferable } from "worker_threads";
 import { z } from "zod";
 import TagCard from "../cards/TagCard";
+import { createQuestion } from "@/lib/actions/question.action";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
+import ROUTES from "@/constants/routes";
+import { ReloadIcon } from "@radix-ui/react-icons";
 
 
 const Editor = dynamic(() => import('@/components/editor'), {
@@ -30,7 +35,9 @@ const Editor = dynamic(() => import('@/components/editor'), {
 // TODO: Some issues with the list features for the MDX editor, will need to go back and try and fix
 
 const QuestionForm = () => {
+  const router = useRouter();
   const editorRef = useRef<MDXEditorMethods>(null);
+  const [isPending, startTransition] = React.useTransition();
 
   const form = useForm<z.infer<typeof AskQuestionSchema>>({
     resolver: zodResolver(AskQuestionSchema),
@@ -41,8 +48,25 @@ const QuestionForm = () => {
     },
   });
 
-  const handleCreateQuestion = (data: z.infer<typeof AskQuestionSchema>) => {
-    console.log(data);
+  const handleCreateQuestion = async (data: z.infer<typeof AskQuestionSchema>) => {
+    startTransition(async () => {
+      const result = await createQuestion(data);
+  
+      if (result.success) {
+        toast("Success", {
+          description: "Question created successfully",
+        });
+  
+        if (result.data) {
+          router.push(ROUTES.QUESTION(result.data._id));
+        } else {
+          toast("Error", {
+            description: result.error?.message || "Failed to create question",
+          });
+        }
+      }
+    })
+    
   };
 
   const handleInputKeyDown = (event: React.KeyboardEvent<HTMLInputElement>, field: { value: string[] }) => {
@@ -162,8 +186,21 @@ const QuestionForm = () => {
         />
 
         <div className="mt-16 flex justify-end">
-          <Button type="submit" className="primary-gradient !text-light-900 w-fit">
+          <Button 
+            type="submit" 
+            className="primary-gradient !text-light-900 w-fit"
+            disabled={isPending}  
+          >
+            {isPending ? (
+              <>
+                <ReloadIcon className="mr-2 size-4 animate-spin" />
+                <span>Submitting</span>
+              </>
+            ) :
+            <>
             Post Question
+            </>
+            }
           </Button>
         </div>
       </form>

@@ -1,3 +1,5 @@
+import { StringValidation } from "zod";
+
 interface SignInWithOAuthParams {
     provider: "github" | "google";
     providerAccountId: string;
@@ -14,4 +16,10 @@ interface AuthCredentials {
     username: string;
     email: string;
     password: string;
+}
+
+interface CreateQuestionParams {
+    title: string;
+    content: string;
+    tags: string[];
 }
