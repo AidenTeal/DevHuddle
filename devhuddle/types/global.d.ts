@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 
 type Question = {
     _id: string; 
-    title: string; 
+    title: string;
+    content: string; 
     description: string; 
     tags: Tag[]; 
     author: Author
