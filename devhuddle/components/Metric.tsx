@@ -14,6 +14,10 @@ type MetricProps = {
 }
 
 const Metric = ({imgUrl, alt, value, title, href, textStyles, imgStyles, isAuthor}: MetricProps) => {
+    if (imgUrl === "") {
+        imgUrl = "/icons/placeholder.svg";
+    }
+
     const metricContent = (
         <>
             <Image 

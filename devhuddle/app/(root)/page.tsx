@@ -5,6 +5,7 @@ import LocalSearch from "@/components/search/LocalSearch";
 import { Button } from "@/components/ui/button";
 import { AvatarImage } from "@/constants/avatars";
 import ROUTES from "@/constants/routes";
+import { getQuestions } from "@/lib/actions/question.action";
 import { Question } from "@/types/global";
 import Link from "next/link";
 
@@ -13,47 +14,27 @@ type SearchParams = {
   searchParams: Promise<{ [key: string]: string }>
 }
 
-const questions: Question[] = [
-  {
-    _id: "1",
-    title: "How to learn React?",
-    description: "I want to learn React, can anyone help me?",
-    tags: [
-      { _id: "1", name: "React" },
-    ],
-    author: { _id: "1", name: "John Doe", image: AvatarImage },
-    upvotes: 10,
-    answers: 5,
-    views: 100,
-    createdAt: new Date(),
-  },
-  {
-    _id: "2",
-    title: "How to learn JavaScript?",
-    description: "I want to learn JavaScript, can anyone help me?",
-    tags: [
-      { _id: "1", name: "JavaScript" },
-    ],
-    author: { _id: "1", name: "John Doe", image: AvatarImage},
-    upvotes: 10,
-    answers: 5,
-    views: 100,
-    createdAt: new Date(),
-  },
-];
-
 const Home = async ({ searchParams }: SearchParams) => {
-  const { query = "", filter = "" } = await searchParams;
+  const { page, pageSize, query, filter } = await searchParams;
 
-  const filteredQuestions = questions.filter((question) => {
-    const matchedQuery = query ? question.title?.toLowerCase().includes(query.toLowerCase()) : true;
-
-    const matchedFilter = filter ? question.tags.some((tag) => (
-      tag.name?.toLowerCase() === filter.toLowerCase()
-    )) : true;
-
-    return matchedQuery && matchedFilter;
+  const { success, data, error } = await getQuestions({
+    page: Number(page) || 1,
+    pageSize: Number(pageSize) || 10,
+    query: query || "",
+    filter: filter || "",
   });
+
+  const { questions } = data || {};
+
+  // const filteredQuestions = questions.filter((question) => {
+  //   const matchedQuery = query ? question.title?.toLowerCase().includes(query.toLowerCase()) : true;
+
+  //   const matchedFilter = filter ? question.tags.some((tag) => (
+  //     tag.name?.toLowerCase() === filter.toLowerCase()
+  //   )) : true;
+
+  //   return matchedQuery && matchedFilter;
+  // });
 
   return (
     <>
@@ -79,14 +60,29 @@ const Home = async ({ searchParams }: SearchParams) => {
       </section>
       <HomeFilter />
 
-      <div className="mt-10 flex w-full flex-col gap-6">
-        {filteredQuestions.map((question) => (
-          <QuestionCard
-            key={question._id}
-            question={question}
-          />
-        ))}
-      </div>
+      {success ? (
+        <div className="mt-10 flex w-full flex-col gap-6">
+          {questions && questions.length > 0 ? questions.map((question) => (
+            <QuestionCard
+              key={question._id}
+              question={question}
+            />
+          )) : (
+            <div className="mt-10 flex w-full items-center justify-center">
+              <p className="body-regular text-dark400_light700">
+                No questions found.
+              </p>
+            </div>
+          )}
+        </div>
+
+      ) : (
+        <div className="mt-10 flex w-full items-center justify-center">
+          <p className="text-dark400_light700">
+            {error?.message || "Failed to fetch questions."}
+          </p>
+        </div>
+      )}
     </>
   );
 }

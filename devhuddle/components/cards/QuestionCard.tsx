@@ -3,13 +3,17 @@ import Link from 'next/link'
 import React from 'react'
 import TagCard from './TagCard'
 import Metric from '../Metric'
+import { QuestionCardProps } from '@/types/global'
+import { getTimeStamp } from '@/lib/utils'
+
+// TODO: Make sure this fills in author information for credentials and not just oAuth
 
 const QuestionCard = ({question}: QuestionCardProps) => {
   return (
     <div className='card-wrapper rounded-[10px] p-9 sm:px-11 background-light800_darkgradient'>
       <div className='flex flex-col-reverse justify-between items-start gap-5 sm:flex-row'>
         <div>
-            <span className='subtle-regular text-dark400_light700 line-clamp-1 flex sm:hidden'>{question.createdAt.toDateString()}</span>
+            <span className='subtle-regular text-dark400_light700 line-clamp-1 flex sm:hidden'>{getTimeStamp(question.createdAt)}</span>
 
             <h3 className='sm:h3-semibold base-semibold text-dark200_light900 line-clamp-1 flex-1'>
                 <Link
@@ -34,10 +38,10 @@ const QuestionCard = ({question}: QuestionCardProps) => {
 
       <div className='flex-between mt-6 w-full flex-wrap gap-3'>
         <Metric 
-            imgUrl={question.author.image}
-            alt={question.author.name}
-            value={question.author.name}
-            title={`• asked ${question.createdAt.toDateString()}`}
+            imgUrl={question.author.image || "/icons/user.svg"}
+            alt={question.author.name || "Anonymous"}
+            value={question.author.name || "Anonymous"}
+            title={`• asked ${getTimeStamp(question.createdAt)}`}
             href={ROUTES.PROFILE(question.author._id)}
             textStyles="body-medium text-dark400_light700"
             isAuthor
@@ -48,7 +52,7 @@ const QuestionCard = ({question}: QuestionCardProps) => {
                 imgUrl="/icons/like.svg"
                 alt="like"
                 value={question.upvotes}
-                title=" Votes"
+                title="Votes"
                 textStyles="small-medium text-dark400_light800"
             />
             <Metric 

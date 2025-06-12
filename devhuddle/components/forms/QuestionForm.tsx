@@ -17,7 +17,6 @@ import { Input } from "../ui/input";
 import { Button } from "../ui/button";
 import { MDXEditorMethods } from "@mdxeditor/editor";
 import dynamic from "next/dynamic";
-import { markAsUntransferable } from "worker_threads";
 import { z } from "zod";
 import TagCard from "../cards/TagCard";
 import { createQuestion, editQuestion } from "@/lib/actions/question.action";
@@ -69,7 +68,7 @@ const QuestionForm = ({ question, isEdit = false }: Params) => {
           });
 
           if (result.data) {
-            router.push(ROUTES.QUESTION(result.data._id));
+            router.push(ROUTES.QUESTION(String(result.data._id)));
           } else {
             toast("Error", {
               description: result.error?.message || "Failed to edit question",
