@@ -1,4 +1,5 @@
 import { StringValidation } from "zod";
+import { PaginatedSearchParams } from "./global";
 
 interface SignInWithOAuthParams {
     provider: "github" | "google";
@@ -30,4 +31,8 @@ interface EditQuestionParams extends CreateQuestionParams{
 
 interface GetQuestionParams {
     questionId: string;
+}
+
+interface GetTagQuestionsParams extends Omit<PaginatedSearchParams, "filter"> {
+    tagId: string;
 }
