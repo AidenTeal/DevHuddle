@@ -1,6 +1,14 @@
+import { getTags } from '@/lib/actions/tag.actions'
 import React from 'react'
 
-const Tags = () => {
+const Tags = async () => {
+  const { success, data, error } = await getTags({
+    page: 1,
+    pageSize: 10,
+  });
+
+  const { tags }= data || {};
+
   return (
     <div>
       Tags

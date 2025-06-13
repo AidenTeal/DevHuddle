@@ -6,8 +6,12 @@ const ROUTES = {
     SIGN_IN: '/sign-in',
     SIGN_UP: '/sign-up',
     PROFILE: (id: string) => `/profile/${id}`,
-    TAGS: (_id: string) => `tags/${_id}`,
+    TAG: (_id: string) => `tags/${_id}`,
     ASK_QUESTION: "/ask-a-question",
+    COLLECTION: '/collection',
+    COMMUNITY: '/community',
+    TAGS: '/tags',
+    JOBS: '/jobs',
     QUESTION: (_id: string) => `questions/${_id}`,
     SIGN_IN_WITH_OAUTH: 'signin-with-oauth',
 };
