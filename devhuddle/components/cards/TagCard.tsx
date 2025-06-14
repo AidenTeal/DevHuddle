@@ -4,17 +4,7 @@ import React from 'react'
 import { Badge } from '../ui/badge'
 import { cn, getDeviconClassName, getTechDescription } from '@/lib/utils'
 import Image from 'next/image'
-
-type TagProps = {
-    _id: string,
-    name: string,
-    questions?: number,
-    showCount?: boolean,
-    compact?: boolean,
-    remove?: boolean,
-    isButton?: boolean,
-    handleRemove?: () => void,
-}
+import { TagProps } from '@/types/global'
 
 const TagCard = ({_id, name, questions, showCount, compact, remove, isButton, handleRemove}: TagProps) => {
     const iconClass = getDeviconClassName(name);

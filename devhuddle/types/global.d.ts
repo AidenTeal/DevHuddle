@@ -56,3 +56,14 @@ type PaginatedSearchParams = {
     filter?: string;
     sort?: string;
 }
+
+type TagProps = {
+    _id: string,
+    name: string,
+    questions?: number,
+    showCount?: boolean,
+    compact?: boolean,
+    remove?: boolean,
+    isButton?: boolean,
+    handleRemove?: () => void,
+}
