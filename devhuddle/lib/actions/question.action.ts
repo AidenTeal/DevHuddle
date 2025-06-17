@@ -1,8 +1,19 @@
 "use server";
 
-import { CreateQuestionParams, EditQuestionParams, GetQuestionParams } from "@/types/action";
+import {
+  CreateQuestionParams,
+  EditQuestionParams,
+  GetQuestionParams,
+  IncrementViewsParams,
+} from "@/types/action";
 import action from "../handlers/action";
-import { AskQuestionSchema, EditQuestionSchema, GetQuestionSchema, PaginatedSearchParamsSchema } from "../validation";
+import {
+  AskQuestionSchema,
+  EditQuestionSchema,
+  GetQuestionSchema,
+  IncrementViewsSchema,
+  PaginatedSearchParamsSchema,
+} from "../validation";
 import handleError from "../handlers/error";
 import mongoose, { FilterQuery } from "mongoose";
 import Question, { IQuestionDoc } from "@/database/question.model";
@@ -15,6 +26,8 @@ import {
   Question as QuestionType,
 } from "@/types/global";
 import { NotFoundError } from "../http-errors";
+import { revalidatePath } from "next/cache";
+import ROUTES from "@/constants/routes";
 
 export async function createQuestion(
   params: CreateQuestionParams
@@ -118,10 +131,14 @@ export async function editQuestion(
     }
 
     const tagsToAdd = tags.filter(
-      (tag) => !question.tags.some((t: ITagDoc) => t.name.toLowerCase().includes(tag.toLowerCase()))
+      (tag) =>
+        !question.tags.some((t: ITagDoc) =>
+          t.name.toLowerCase().includes(tag.toLowerCase())
+        )
     );
     const tagsToRemove = question.tags.filter(
-      (tag: ITagDoc) => !tags.some((t) => t.toLowerCase() === tag.name.toLowerCase())
+      (tag: ITagDoc) =>
+        !tags.some((t) => t.toLowerCase() === tag.name.toLowerCase())
     );
 
     const newTagDocuments = [];
@@ -157,13 +174,21 @@ export async function editQuestion(
         { session }
       );
 
+      await Tag.deleteMany(
+        { _id: { $in: tagIdsToRemove }, questions: 0 },
+        { session }
+      );
+
       question.tags = question.tags.filter(
-        (tag: mongoose.Types.ObjectId) => !tagIdsToRemove.some((id: mongoose.Types.ObjectId) => id.equals(tag._id))
+        (tag: mongoose.Types.ObjectId) =>
+          !tagIdsToRemove.some((id: mongoose.Types.ObjectId) =>
+            id.equals(tag._id)
+          )
       );
     }
 
     if (newTagDocuments.length > 0) {
-        await TagQuestion.insertMany(newTagDocuments, { session });
+      await TagQuestion.insertMany(newTagDocuments, { session });
     }
 
     await question.save({ session });
@@ -194,11 +219,11 @@ export async function getQuestion(
   const { questionId } = validationResult.params!;
 
   try {
-    const question = await Question.findById(questionId).populate("tags");
+    const question = await Question.findById(questionId).populate("tags").populate("author", "_id name image");
 
     if (!question) {
-        throw new NotFoundError("Question");
-    } 
+      throw new NotFoundError("Question");
+    }
 
     return { success: true, data: JSON.parse(JSON.stringify(question)) };
   } catch (error) {
@@ -213,10 +238,9 @@ export async function getQuestion(
 
 // It's a Direct Invocation. When you use a Server Action in a Server Component, you're directly calling the function on the server. There's no HTTP request involved at all because both the Server Component and the Server Action are executing in the same server environment.
 
-
-
-
-export async function getQuestions(params: PaginatedSearchParams): Promise<ActionResponse<{questions: QuestionType[]; isNext: boolean}>> {
+export async function getQuestions(
+  params: PaginatedSearchParams
+): Promise<ActionResponse<{ questions: QuestionType[]; isNext: boolean }>> {
   const validationResult = await action({
     params,
     schema: PaginatedSearchParamsSchema,
@@ -232,31 +256,31 @@ export async function getQuestions(params: PaginatedSearchParams): Promise<Actio
 
   const filterQuery: FilterQuery<typeof Question> = {};
 
-  if (filter === 'recommended') {
+  if (filter === "recommended") {
     return { success: true, data: { questions: [], isNext: false } };
   }
 
   if (query) {
     filterQuery.$or = [
-      { title: { $regex: new RegExp(query, 'i') } },
-      { content: { $regex: new RegExp(query, 'i') } },
+      { title: { $regex: new RegExp(query, "i") } },
+      { content: { $regex: new RegExp(query, "i") } },
     ];
   }
 
   let sortCriteria = {};
 
   switch (filter) {
-    case 'newest':
+    case "newest":
       sortCriteria = { createdAt: -1 };
       break;
-    case 'unanswered':
+    case "unanswered":
       filterQuery.answers = 0; // Filter for questions with no answers
       sortCriteria = { createdAt: -1 }; // Sort by newest
       break;
-    case 'popular':
+    case "popular":
       sortCriteria = { upvotes: -1 };
       break;
-      default:
+    default:
       sortCriteria = { createdAt: -1 }; // Default to newest
       break;
   }
@@ -265,19 +289,54 @@ export async function getQuestions(params: PaginatedSearchParams): Promise<Actio
     const totalQuestions = await Question.countDocuments(filterQuery);
 
     const questions = await Question.find(filterQuery)
-      .populate('tags', 'name')
+      .populate("tags", "name")
       //.populate('author', 'name image')
       .lean()
       .sort(sortCriteria)
       .skip(skip)
       .limit(limit);
 
-      const isNext = totalQuestions > skip + questions.length;
+    const isNext = totalQuestions > skip + questions.length;
 
-      return {
-        success: true,
-        data: { questions: JSON.parse(JSON.stringify(questions)), isNext },
-      }
+    return {
+      success: true,
+      data: { questions: JSON.parse(JSON.stringify(questions)), isNext },
+    };
+  } catch (error) {
+    return handleError(error) as ErrorResponse;
+  }
+}
+
+
+export async function incrementViews(
+  params: IncrementViewsParams
+): Promise<ActionResponse<{ views: number }>> {
+  const validationResult = await action({
+    params,
+    schema: IncrementViewsSchema,
+  });
+
+  if (validationResult instanceof Error) {
+    return handleError(validationResult) as ErrorResponse;
+  }
+
+  const { questionId } = validationResult.params!;
+
+  try {
+    const question = await Question.findById(questionId);
+
+    if (!question) {
+      throw new Error("Question not found");
+    }
+
+    question.views += 1;
+
+    await question.save();
+
+    return {
+      success: true,
+      data: { views: question.views },
+    };
   } catch (error) {
     return handleError(error) as ErrorResponse;
   }
