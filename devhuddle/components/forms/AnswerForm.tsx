@@ -1,5 +1,5 @@
 "use client";
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useTransition } from "react";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -10,15 +10,19 @@ import dynamic from "next/dynamic";
 import { MDXEditorMethods } from "@mdxeditor/editor";
 import { ReloadIcon } from "@radix-ui/react-icons";
 import Image from "next/image";
+import { createAnswer } from "@/lib/actions/answer.action";
+import { toast } from "sonner";
 
 const Editor = dynamic(() => import("@/components/editor"), {
   // Make sure we turn SSR off
   ssr: false,
 });
 
-const AnswerForm = () => {
+const AnswerForm = ({ questionId }: { questionId: string }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isAISubmitting, setIsAISubmitting] = useState(false);
+
+  const [isAnswering, startAnsweringTransition] = useTransition();
 
   const editorRef = useRef<MDXEditorMethods>(null);
 
@@ -30,7 +34,24 @@ const AnswerForm = () => {
   });
 
   const handleSubmit = async (values: z.infer<typeof AnswerSchema>) => {
-    console.log(values);
+    startAnsweringTransition(async() => {
+        const result = await createAnswer({
+            questionId,
+            content: values.content,
+        });
+    
+        if (result.success) {
+            form.reset();
+    
+            toast("Answer posted successfully!", {
+              description: "Your answer has been posted.",
+            }); 
+        } else {
+            toast.error("Failed to post answer", {
+              description: result.error?.message || "An error occurred while posting your answer.",
+            });
+        }
+    })
   };
 
   return (
@@ -72,7 +93,7 @@ const AnswerForm = () => {
             name="content"
             render={({ field }) => (
               <FormItem className="flex w-full flex-col gap-3">
-                <FormControl className="mt-3.5">
+                <FormControl>
                   <Editor
                     value={field.value}
                     editorRef={editorRef}
@@ -84,7 +105,7 @@ const AnswerForm = () => {
           ></FormField>
 
           <div className="flex justify-end">
-            <Button type="submit" className="primary-gradient w-fit">
+            <Button type="submit" className="primary-gradient w-fit hover:cursor-pointer">
               {isSubmitting ? (
                 <>
                   <ReloadIcon className="mr-2 size-4 animate-spin" />
