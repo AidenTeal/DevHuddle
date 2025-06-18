@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { StringValidation } from "zod";
 
 type Question = {
     _id: string; 
@@ -66,4 +67,11 @@ type TagProps = {
     remove?: boolean,
     isButton?: boolean,
     handleRemove?: () => void,
+}
+
+interface Answer {
+    _id: string;
+    author: Author;
+    content: string;
+    createdAt: Date;
 }
