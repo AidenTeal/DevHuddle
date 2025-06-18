@@ -183,9 +183,9 @@ const QuestionForm = ({ question, isEdit = false }: Params) => {
               </FormLabel>
               <FormControl>
                 <Editor
-                  value={field.value}
-                  editorRef={editorRef}
-                  fieldChange={field.onChange}
+                  ref={editorRef}
+                  value={form.watch("content")}
+                  fieldChange={(val) => form.setValue("content", val)}
                 />
               </FormControl>
               <FormDescription className="body-regular text-light-500 mt-2.5">
@@ -241,7 +241,7 @@ const QuestionForm = ({ question, isEdit = false }: Params) => {
         <div className="mt-16 flex justify-end">
           <Button
             type="submit"
-            className="primary-gradient !text-light-900 w-fit"
+            className="primary-gradient !text-light-900 w-fit hover:cursor-pointer"
             disabled={isPending}
           >
             {isPending ? (

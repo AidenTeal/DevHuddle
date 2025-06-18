@@ -12,15 +12,25 @@ import { ReloadIcon } from "@radix-ui/react-icons";
 import Image from "next/image";
 import { createAnswer } from "@/lib/actions/answer.action";
 import { toast } from "sonner";
+import { useSession } from "next-auth/react";
+import { set } from "mongoose";
+import { api } from "@/lib/api";
 
 const Editor = dynamic(() => import("@/components/editor"), {
   // Make sure we turn SSR off
   ssr: false,
 });
 
-const AnswerForm = ({ questionId }: { questionId: string }) => {
+interface Props {
+  questionId: string;
+  questionTitle: string;
+  questionContent: string;
+}
+
+const AnswerForm = ({ questionId, questionTitle, questionContent }: Props) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isAISubmitting, setIsAISubmitting] = useState(false);
+  const session = useSession();
 
   const [isAnswering, startAnsweringTransition] = useTransition();
 
@@ -31,27 +41,84 @@ const AnswerForm = ({ questionId }: { questionId: string }) => {
     defaultValues: {
       content: "",
     },
+    mode: "onSubmit", 
   });
 
   const handleSubmit = async (values: z.infer<typeof AnswerSchema>) => {
-    startAnsweringTransition(async() => {
-        const result = await createAnswer({
-            questionId,
-            content: values.content,
+    startAnsweringTransition(async () => {
+      const result = await createAnswer({
+        questionId,
+        content: values.content,
+      });
+
+      if (result.success) {
+        form.reset();
+
+        toast("Answer posted successfully!", {
+          description: "Your answer has been posted.",
         });
-    
-        if (result.success) {
-            form.reset();
-    
-            toast("Answer posted successfully!", {
-              description: "Your answer has been posted.",
-            }); 
-        } else {
-            toast.error("Failed to post answer", {
-              description: result.error?.message || "An error occurred while posting your answer.",
-            });
+
+        console.log(editorRef.current);
+
+        if (editorRef.current) {
+          editorRef.current.setMarkdown("");
         }
-    })
+      } else {
+        toast.error("Failed to post answer", {
+          description:
+            result.error?.message ||
+            "An error occurred while posting your answer.",
+        });
+      }
+    });
+  };
+
+  const generateAIAnswer = async () => {
+    if (session.status !== "authenticated") {
+      return toast("Please log in to use AI answer generation.", {
+        description: "You need to be logged in to generate AI answers.",
+      });
+    }
+    setIsAISubmitting(true);
+    
+    //const userAnswer = form.getValues("content").trim();
+
+    //TODO: userAnswer may not be read properly
+    try {
+
+      const { success, data, error } = await api.ai.getAnswer(
+        questionTitle,
+        questionContent,
+        ""//userAnswer
+      );
+
+      if (!success) {
+        return toast.error("Failed to generate AI answer", {
+          description:
+            error?.message ||
+            "An error occurred while generating the AI answer.",
+        });
+      }
+
+      const formattedAnswer = data!.replace(/<br>/g, " ").toString().trim();
+
+      if (editorRef.current) {
+        editorRef.current.setMarkdown(formattedAnswer);
+
+        form.setValue("content", formattedAnswer);
+        form.trigger("content");
+      }
+
+      toast.success("AI answer generated successfully!", {
+        description: "Your AI-generated answer has been inserted.",
+      });
+    } catch (error) {
+      toast.error("Failed to generate AI answer", {
+        description: "An error occurred while generating the AI answer.",
+      });
+    } finally {
+      setIsAISubmitting(false);
+    }
   };
 
   return (
@@ -63,6 +130,7 @@ const AnswerForm = ({ questionId }: { questionId: string }) => {
         <Button
           className="btn hover:cursor-pointer light-border-2 gap-1.5 rounded-md border px-4 py-2.5 text-primary-500 shadow-none dark:text-primary-500"
           disabled={isAISubmitting}
+          onClick={generateAIAnswer}
         >
           {isAISubmitting ? (
             <>
@@ -95,9 +163,9 @@ const AnswerForm = ({ questionId }: { questionId: string }) => {
               <FormItem className="flex w-full flex-col gap-3">
                 <FormControl>
                   <Editor
-                    value={field.value}
-                    editorRef={editorRef}
-                    fieldChange={field.onChange}
+                    ref={editorRef}
+                    value={form.watch("content")}
+                    fieldChange={(val) => form.setValue("content", val)}
                   />
                 </FormControl>
               </FormItem>
@@ -105,7 +173,10 @@ const AnswerForm = ({ questionId }: { questionId: string }) => {
           ></FormField>
 
           <div className="flex justify-end">
-            <Button type="submit" className="primary-gradient w-fit hover:cursor-pointer">
+            <Button
+              type="submit"
+              className="primary-gradient w-fit hover:cursor-pointer"
+            >
               {isSubmitting ? (
                 <>
                   <ReloadIcon className="mr-2 size-4 animate-spin" />

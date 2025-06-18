@@ -1,7 +1,7 @@
 import { ActionResponse } from "@/types/global";
+import { RequestError } from "../http-errors";
 import logger from "../logger";
 import handleError from "./error";
-import { RequestError } from "../http-errors";
 
 interface FetchOptions extends RequestInit {
   timeout?: number;
@@ -16,13 +16,12 @@ export async function fetchHandler<T>(
   options: FetchOptions = {}
 ): Promise<ActionResponse<T>> {
   const {
-    timeout = 5000,
+    timeout = 100000,
     headers: customHeaders = {},
     ...restOptions
   } = options;
 
   const controller = new AbortController();
-
   const id = setTimeout(() => controller.abort(), timeout);
 
   const defaultHeaders: HeadersInit = {
@@ -30,11 +29,7 @@ export async function fetchHandler<T>(
     Accept: "application/json",
   };
 
-  const headers: HeadersInit = {
-    ...defaultHeaders,
-    ...customHeaders,
-  };
-
+  const headers: HeadersInit = { ...defaultHeaders, ...customHeaders };
   const config: RequestInit = {
     ...restOptions,
     headers,
@@ -47,10 +42,7 @@ export async function fetchHandler<T>(
     clearTimeout(id);
 
     if (!response.ok) {
-      throw new RequestError(
-        response.status,
-        `HTTP error: ${response.statusText}`
-      );
+      throw new RequestError(response.status, `HTTP error: ${response.status}`);
     }
 
     return await response.json();
