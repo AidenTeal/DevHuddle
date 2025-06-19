@@ -1,4 +1,4 @@
-import { StringValidation } from "zod";
+import { boolean, StringValidation } from "zod";
 import { PaginatedSearchParams } from "./global";
 
 interface SignInWithOAuthParams {
@@ -58,4 +58,11 @@ interface CreateVoteParams {
 
 interface UpdateVoteParams extends CreateVoteParams {
     change: 1 | -1;
+}
+
+type HasVotedParams = Pick<CreateVoteParams, "targetId" | "targetType">;
+
+interface HasVotedResponse {
+    hasUpvoted: boolean;
+    hasDownvoted: boolean;
 }
