@@ -81,15 +81,14 @@ const AnswerForm = ({ questionId, questionTitle, questionContent }: Props) => {
     }
     setIsAISubmitting(true);
     
-    //const userAnswer = form.getValues("content").trim();
+    const userAnswer = form.getValues("content").trim();
 
     //TODO: userAnswer may not be read properly
     try {
-
       const { success, data, error } = await api.ai.getAnswer(
         questionTitle,
         questionContent,
-        ""//userAnswer
+        userAnswer
       );
 
       if (!success) {
