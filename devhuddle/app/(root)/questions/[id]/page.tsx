@@ -14,26 +14,34 @@ import { RouteParams } from "@/types/global";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { after } from "next/server";
-import React from "react";
+import React, { Suspense } from "react";
+import { hasVoted } from "@/lib/actions/vote.action";
 
 const QuestionDetails = async ({ params }: RouteParams) => {
   const { id } = await params;
-  
-  const { success, data } = await getQuestion({
-    questionId: id
-  });
-  
-  after(async () => await incrementViews({ questionId: id}));
-  
 
+  const { success, data } = await getQuestion({
+    questionId: id,
+  });
+
+  after(async () => await incrementViews({ questionId: id }));
 
   if (!success || !data) return redirect("/404");
 
-  const { success: successAnswer, data: answersResult, error: answersError } = await getAnswers({
+  const {
+    success: successAnswer,
+    data: answersResult,
+    error: answersError,
+  } = await getAnswers({
     questionId: id,
     page: 1,
     pageSize: 10,
     filter: "latest",
+  });
+
+  const hasVotedPromise = hasVoted({
+    targetId: data._id,
+    targetType: "question",
   });
 
   console.log("question content", data.content);
@@ -61,7 +69,15 @@ const QuestionDetails = async ({ params }: RouteParams) => {
           </div>
 
           <div className="flex justify-end">
-            <Votes upvotes={data.upvotes} hasUpvoted={true} downvotes={data.downvotes} hasdownVoted={false}/> 
+            <Suspense fallback={<div>Loading...</div>}>
+              <Votes
+                upvotes={data.upvotes}   
+                downvotes={data.downvotes}
+                targetType="question"
+                targetId={data._id}
+                hasVotedPromise={hasVotedPromise}
+              />
+            </Suspense>
           </div>
         </div>
         <h2 className="h2-semibold text-dark200_light900 mt-3.5 w-full">
@@ -93,9 +109,8 @@ const QuestionDetails = async ({ params }: RouteParams) => {
         />
       </div>
 
-     
       <Preview content={sampleQuestion.content} />
-      
+
       <div className="mt-8 flex flex-wrap gap-2">
         {sampleQuestion.tags.map((tag) => (
           <TagCard
@@ -108,7 +123,7 @@ const QuestionDetails = async ({ params }: RouteParams) => {
       </div>
 
       <section className="my-5">
-        <AllAnswers 
+        <AllAnswers
           data={answersResult?.answers}
           success={successAnswer}
           error={answersError}
@@ -117,7 +132,11 @@ const QuestionDetails = async ({ params }: RouteParams) => {
       </section>
 
       <section className="my-5">
-        <AnswerForm questionId={data._id} questionTitle={data.title} questionContent={data.content}/>
+        <AnswerForm
+          questionId={data._id}
+          questionTitle={data.title}
+          questionContent={data.content}
+        />
       </section>
     </>
   );
