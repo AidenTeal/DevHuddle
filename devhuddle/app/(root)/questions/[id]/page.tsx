@@ -17,6 +17,7 @@ import { after } from "next/server";
 import React, { Suspense } from "react";
 import { hasVoted } from "@/lib/actions/vote.action";
 import SaveQuestion from "@/components/questions/SaveQuestion";
+import { hasSavedQuestion } from "@/lib/actions/collection.action";
 
 const QuestionDetails = async ({ params }: RouteParams) => {
   const { id } = await params;
@@ -45,6 +46,10 @@ const QuestionDetails = async ({ params }: RouteParams) => {
     targetType: "question",
   });
 
+  const hasSavedQuestionPromise = hasSavedQuestion({
+    questionId: data._id,
+  })
+
   console.log("question content", data.content);
 
   const sampleQuestion = data;
@@ -69,7 +74,7 @@ const QuestionDetails = async ({ params }: RouteParams) => {
             </Link>
           </div>
 
-          <div className="flex justify-end">
+          <div className="flex justify-end items-center gap-4">
             <Suspense fallback={<div>Loading...</div>}>
               <Votes
                 upvotes={data.upvotes}   
@@ -81,7 +86,7 @@ const QuestionDetails = async ({ params }: RouteParams) => {
             </Suspense>
 
             <Suspense fallback={<div>Loading...</div>}>
-              <SaveQuestion questionId={data._id} />
+              <SaveQuestion questionId={data._id} hasSavedQuestionPromise={hasSavedQuestionPromise}/>
             </Suspense>
 
           </div>

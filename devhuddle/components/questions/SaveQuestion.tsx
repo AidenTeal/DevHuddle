@@ -1,17 +1,27 @@
 "use client"
 
 import { toggleSaveQuestion } from '@/lib/actions/collection.action';
+import { ActionResponse } from '@/types/global';
 import { useSession } from 'next-auth/react';
 import Image from 'next/image';
-import React, { useState } from 'react'
+import React, { use, useState } from 'react'
 import { toast } from 'sonner';
 
-const SaveQuestion = ({ questionId }: { questionId: string }) => {
+interface Params {
+    questionId: string;
+    hasSavedQuestionPromise: Promise<ActionResponse<{ saved: boolean }>>;
+}
+
+const SaveQuestion = ({ questionId, hasSavedQuestionPromise }: Params) => {
     const session = useSession();
     const userId = session?.data?.user?.id;
 
     const [isLoading, setIsLoading] = useState(false);
+
+    const { data } = use(hasSavedQuestionPromise);
     
+    const { saved: hasSaved } = data || {};
+
     const handleSave = async () => {
         if (isLoading) return;
         if (!userId) return toast("Please login to save questions", {
@@ -39,8 +49,6 @@ const SaveQuestion = ({ questionId }: { questionId: string }) => {
                 setIsLoading(false);
             }
         }
-        
-        let hasSaved = false;
 
     return (
     <Image 
