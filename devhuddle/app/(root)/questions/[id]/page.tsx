@@ -16,6 +16,7 @@ import { redirect } from "next/navigation";
 import { after } from "next/server";
 import React, { Suspense } from "react";
 import { hasVoted } from "@/lib/actions/vote.action";
+import SaveQuestion from "@/components/questions/SaveQuestion";
 
 const QuestionDetails = async ({ params }: RouteParams) => {
   const { id } = await params;
@@ -78,6 +79,11 @@ const QuestionDetails = async ({ params }: RouteParams) => {
                 hasVotedPromise={hasVotedPromise}
               />
             </Suspense>
+
+            <Suspense fallback={<div>Loading...</div>}>
+              <SaveQuestion questionId={data._id} />
+            </Suspense>
+
           </div>
         </div>
         <h2 className="h2-semibold text-dark200_light900 mt-3.5 w-full">
