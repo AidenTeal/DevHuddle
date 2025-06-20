@@ -1,8 +1,8 @@
 'use server';
 
 import { CollectionBaseParams } from "@/types/action";
-import { ActionResponse, ErrorResponse } from "@/types/global";
-import { CollectionBaseSchema } from "../validation";
+import { ActionResponse, Collection, ErrorResponse, PaginatedSearchParams } from "@/types/global";
+import { CollectionBaseSchema, PaginatedSearchParamsSchema } from "../validation";
 import { auth } from "@/auth";
 import action from "../handlers/action";
 import handleError from "../handlers/error";
@@ -96,5 +96,40 @@ export async function hasSavedQuestion(params: CollectionBaseParams): Promise<Ac
     } catch (error) {
         return handleError(error) as ErrorResponse;
     }
+}
 
+export async function getSavedQuestions(params: PaginatedSearchParams): Promise<ActionResponse<{ collection: Collection[], isNext: boolean }>> {
+    const validationResult = await action({
+        params,
+        schema: PaginatedSearchParamsSchema,
+        authorize: true,
+    });
+
+    if (validationResult instanceof Error) {
+        return handleError(validationResult) as ErrorResponse;
+    }
+
+    const userId = validationResult.session?.user?.id;
+    const { page = 1, pageSize = 10, query, filter } = params;
+
+    const skip = (Number(page) - 1) * pageSize;
+    const limit = Number(pageSize);
+
+    const sortOptions: Record<string, Record<string, 1 | -1>> = {
+        mostRecent: { "question.createdAt": -1 },
+        oldest: { "question.createdAt": 1 },
+        mostVotes: { "question.upvotes": -1 },
+        mostViewed: { "question.views": -1 },
+        mostAnswered: { "question.answers": -1 },
+    };
+
+    const sortCriteria = sortOptions[filter as keyof typeof sortOptions] || {
+        "questions.createdAt": -1,
+    };
+
+    try {
+
+    } catch (error) {
+        return handleError(error) as ErrorResponse;
+    }
 }
