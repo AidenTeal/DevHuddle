@@ -28,16 +28,6 @@ const Home = async ({ searchParams }: SearchParams) => {
 
   const { questions } = data || {};
 
-  // const filteredQuestions = questions.filter((question) => {
-  //   const matchedQuery = query ? question.title?.toLowerCase().includes(query.toLowerCase()) : true;
-
-  //   const matchedFilter = filter ? question.tags.some((tag) => (
-  //     tag.name?.toLowerCase() === filter.toLowerCase()
-  //   )) : true;
-
-  //   return matchedQuery && matchedFilter;
-  // });
-
   return (
     <>
       <section className="flex w-full flex-col-reverse sm:flex-row gap-4 justify-between sm:items-center">

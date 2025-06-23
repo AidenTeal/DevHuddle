@@ -28,6 +28,15 @@ export const EMPTY_QUESTION = {
     }
 };
 
+export const EMPTY_QUESTIONS_SAVED = {
+    title: "No Questions Yet!",
+    message: "Save questions to your collection to view them here.",
+    button: {
+        text: "Save a Question",
+        href: ROUTES.HOME,
+    }
+};
+
 export const EMPTY_TAGS = {
   title: "No Tags Found",
   message: "The tag cloud is empty. Add some keywords to make it rain.",
