@@ -1,10 +1,13 @@
 import { auth, signOut } from "@/auth"
 import QuestionCard from "@/components/cards/QuestionCard";
 import DataRenderer from "@/components/DataRenderer";
+import CommonFilter from "@/components/filters/CommonFilter";
 import HomeFilter from "@/components/filters/HomeFilter";
+import Pagination from "@/components/Pagination";
 import LocalSearch from "@/components/search/LocalSearch";
 import { Button } from "@/components/ui/button";
 import { AvatarImage } from "@/constants/avatars";
+import { CollectionFilters } from "@/constants/filters";
 import ROUTES from "@/constants/routes";
 import { EMPTY_QUESTION, EMPTY_QUESTIONS_SAVED } from "@/constants/states";
 import { getSavedQuestions } from "@/lib/actions/collection.action";
@@ -27,22 +30,26 @@ const Collections = async ({ searchParams }: SearchParams) => {
     filter: filter || "",
   });
 
-  const { collection } = data || {};
+  const { collection, isNext } = data || {};
 
   return (
     <>
-      <section className="flex w-full flex-col-reverse sm:flex-row gap-4 justify-between sm:items-center">
-        <h1 className="h1-bold text-dark100_light900">
-          Saved Questions
-        </h1>
-      </section>
-
-      <section className="mt-11">
+     
+      <h1 className="h1-bold text-dark100_light900">
+        Saved Questions
+      </h1>
+  
+      <section className="mt-11 flex justify-between gap-5 max-sm:flex-col sm:items-center">
         <LocalSearch 
           route="/"
           imgSrc='/icons/search.svg'
           placeholder="Search questions..."
           otherClasses="flex-1"
+        />
+
+        <CommonFilter 
+          filters={CollectionFilters}
+          otherClasses="min-h-[56px] sm:min-w-[170px] flex-1"
         />
       </section>
 
@@ -61,6 +68,11 @@ const Collections = async ({ searchParams }: SearchParams) => {
               ))}
           </div>
         }
+      />
+
+      <Pagination 
+        page={page}
+        isNext={isNext || false}
       />
     </>
   );

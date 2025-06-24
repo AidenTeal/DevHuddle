@@ -1,69 +1,119 @@
 "use server";
 
-import { ActionResponse, ErrorResponse, PaginatedSearchParams } from "@/types/global";
+import {
+  ActionResponse,
+  ErrorResponse,
+  PaginatedSearchParams,
+} from "@/types/global";
 import action from "../handlers/action";
-import { PaginatedSearchParamsSchema } from "../validation";
+import { getUserSchema, PaginatedSearchParamsSchema } from "../validation";
 import handleError from "../handlers/error";
 import { FilterQuery } from "mongoose";
-import { User } from "@/database";
+import { Answer, Question, User } from "@/database";
 import { User as UserType } from "../../types/global";
+import { GetUserParams } from "@/types/action";
 
-export async function getUsers(params: PaginatedSearchParams): Promise<ActionResponse<{ users: UserType[], isNext: boolean }>> {
+export async function getUsers(
+  params: PaginatedSearchParams
+): Promise<ActionResponse<{ users: UserType[]; isNext: boolean }>> {
+  const validationResult = await action({
+    params,
+    schema: PaginatedSearchParamsSchema,
+  });
+
+  if (validationResult instanceof Error) {
+    return handleError(validationResult) as ErrorResponse;
+  }
+
+  const { page = 1, pageSize = 10, query, filter } = validationResult.params!;
+
+  const skip = (Number(page) - 1) * pageSize;
+  const limit = Number(pageSize);
+
+  const filterQuery: FilterQuery<typeof User> = {};
+
+  if (query) {
+    filterQuery.$or = [
+      { name: { $regex: query, $options: "i" } },
+      { email: { $regex: query, $options: "i" } },
+    ];
+  }
+
+  let sortCriteria = {};
+
+  switch (filter) {
+    case "newest":
+      sortCriteria = { createdAt: -1 };
+      break;
+    case "oldest":
+      sortCriteria = { createdAt: 1 };
+      break;
+    case "popular":
+      sortCriteria = { reputation: -1 };
+      break;
+    default:
+      sortCriteria = { createdAt: -1 }; // Default to newest
+      break;
+  }
+
+  try {
+    const totalUsers = await User.countDocuments(filterQuery);
+
+    const users = await User.find(filterQuery)
+      .sort(sortCriteria)
+      .skip(skip)
+      .limit(limit);
+
+    const isNext = totalUsers > skip + users.length;
+
+    return {
+      success: true,
+      data: {
+        users: JSON.parse(JSON.stringify(users)), // Ensure we return a clean JSON object
+        isNext,
+      },
+    };
+  } catch (error) {
+    return handleError(error) as ErrorResponse;
+  }
+}
+
+export async function getUser(
+  params: GetUserParams
+): Promise<
+  ActionResponse<{
+    user: UserType;
+    totalQuestions: number;
+    totalAnswers: number;
+  }>
+> {
     const validationResult = await action({
         params,
-        schema: PaginatedSearchParamsSchema
+        schema: getUserSchema
     });
 
     if (validationResult instanceof Error) {
         return handleError(validationResult) as ErrorResponse;
     }
 
-    const { page = 1, pageSize = 10, query, filter } = validationResult.params!;
-
-    const skip = (Number(page) - 1) * pageSize;
-    const limit = Number(pageSize);
-
-    const filterQuery: FilterQuery<typeof User> = {};
-
-    if (query) {
-        filterQuery.$or = [
-            { name: { $regex: query, $options: "i" } },
-            { email: { $regex: query, $options: "i" } }
-        ]
-    }
-
-    let sortCriteria = {};
-
-    switch (filter) {
-        case 'newest':
-            sortCriteria = { createdAt: -1 };
-            break;
-        case 'oldest':
-            sortCriteria = { createdAt: 1 };
-            break;
-        case 'popular':
-            sortCriteria = { reputation: -1 };
-            break;
-        default:
-            sortCriteria = { createdAt: -1 }; // Default to newest
-            break;
-    }
+    const { userId } = validationResult.params!;
 
     try {
-        const totalUsers = await User.countDocuments(filterQuery);
+        const user = await User.findById(userId);
 
-        const users = await User.find(filterQuery)
-        .sort(sortCriteria)
-        .skip(skip)
-        .limit(limit);
+        if (!user) {
+            throw new Error("User not found");
+        }
 
-        const isNext = totalUsers > skip + users.length;
+        const totalQuestions = await Question.countDocuments({ author: userId });
+        const totalAnswers = await Answer.countDocuments({ author: userId });
 
         return {
             success: true,
             data: {
-                users: JSON.parse(JSON.stringify(users)), // Ensure we return a clean JSON object
-                isNext
+                user: JSON.parse(JSON.stringify(user)),
+                totalQuestions,
+                totalAnswers,
             }
         }
     } catch (error) {

@@ -1,10 +1,13 @@
 import { auth, signOut } from "@/auth"
 import QuestionCard from "@/components/cards/QuestionCard";
 import DataRenderer from "@/components/DataRenderer";
+import CommonFilter from "@/components/filters/CommonFilter";
 import HomeFilter from "@/components/filters/HomeFilter";
+import Pagination from "@/components/Pagination";
 import LocalSearch from "@/components/search/LocalSearch";
 import { Button } from "@/components/ui/button";
 import { AvatarImage } from "@/constants/avatars";
+import { HomePageFilters } from "@/constants/filters";
 import ROUTES from "@/constants/routes";
 import { EMPTY_QUESTION } from "@/constants/states";
 import { getQuestions } from "@/lib/actions/question.action";
@@ -21,33 +24,38 @@ const Home = async ({ searchParams }: SearchParams) => {
 
   const { success, data, error } = await getQuestions({
     page: Number(page) || 1,
-    pageSize: Number(pageSize) || 10,
+    pageSize: Number(pageSize) || 2,
     query: query || "",
     filter: filter || "",
   });
 
-  const { questions } = data || {};
+  const { questions, isNext } = data || {};
 
   return (
     <>
-      <section className="flex w-full flex-col-reverse sm:flex-row gap-4 justify-between sm:items-center">
-        <h1 className="h1-bold text-dark100_light900">
-          All Questions
-        </h1>
+      <section className="flex w-full flex-col-reverse justify-between gap-4 sm:flex-row sm:items-center">
+        <h1 className="h1-bold text-dark100_light900">All Questions</h1>
 
-        <Button className="primary-gradient min-h-[46px] px-4 py-3 !text-light-900" asChild>
-          <Link href={ROUTES.ASK_QUESTION}>
-            Ask a Question
-          </Link>
+        <Button
+          className="primary-gradient min-h-[46px] px-4 py-3 !text-light-900"
+          asChild
+        >
+          <Link href={ROUTES.ASK_QUESTION}>Ask a Question</Link>
         </Button>
       </section>
 
-      <section className="mt-11">
+      <section className="mt-11 flex justify-between gap-5 max-sm:flex-col sm:items-center">
         <LocalSearch 
           route="/"
           imgSrc='/icons/search.svg'
           placeholder="Search questions..."
           otherClasses="flex-1"
+        />
+
+        <CommonFilter
+          filters={HomePageFilters}
+          otherClasses="min-h-[56px] sm:min-w-[170px] flex-1"
+          containerClasses="hidden max-md:flex"
         />
       </section>
       <HomeFilter />
@@ -67,6 +75,11 @@ const Home = async ({ searchParams }: SearchParams) => {
               ))}
           </div>
         }
+      />
+
+      <Pagination 
+        page={page}
+        isNext={isNext || false}
       />
     </>
   );
