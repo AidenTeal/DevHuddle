@@ -5,14 +5,15 @@ import TagCard from './TagCard'
 import Metric from '../Metric'
 import { QuestionCardProps } from '@/types/global'
 import { getTimeStamp } from '@/lib/utils'
+import EditDeleteAction from '../user/EditDeleteAction'
 
 // TODO: Make sure this fills in author information for credentials and not just oAuth
 
-const QuestionCard = ({question}: QuestionCardProps) => {
+const QuestionCard = ({question, showActionBtns}: QuestionCardProps) => {
   return (
     <div className='card-wrapper rounded-[10px] p-9 sm:px-11 background-light800_darkgradient'>
-      <div className='flex flex-col-reverse justify-between items-start gap-5 sm:flex-row'>
-        <div>
+      <div className='flex flex-col-reverse justify-between items-center gap-5 sm:flex-row'>
+        <div className='flex-1'>
             <span className='subtle-regular text-dark400_light700 line-clamp-1 flex sm:hidden'>{getTimeStamp(question.createdAt)}</span>
 
             <h3 className='sm:h3-semibold base-semibold text-dark200_light900 line-clamp-1 flex-1'>
@@ -23,6 +24,13 @@ const QuestionCard = ({question}: QuestionCardProps) => {
                 </Link>
             </h3>
         </div>
+
+        {showActionBtns && (
+          <EditDeleteAction 
+            type="Question"
+            itemId={question._id}
+          />
+        )}
       </div>
 
       <div className='mt-3.5 flex w-full flex-wrap gap-2'>

@@ -27,7 +27,8 @@ type Author = {
 
 type QuestionCardProps = {
     key: string;
-    question: Question
+    question: Question;
+    showActionBtns?: boolean;
 }
 
 type ActionResponse<T = null> = {
@@ -77,6 +78,7 @@ interface Answer {
     createdAt: Date;
     upvotes: number;
     downvotes: number;
+    question: string;
 }
 
 interface User {
@@ -108,4 +110,10 @@ interface User {
     portfolio?: string;
     reputation?: number;
     createdAt: Date;
+}
+
+interface BadgeCounts {
+    GOLD: number;
+    SILVER: number;
+    BRONZE: number;
 }

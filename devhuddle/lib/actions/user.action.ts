@@ -4,14 +4,28 @@ import {
   ActionResponse,
   ErrorResponse,
   PaginatedSearchParams,
+  Question as QuestionType,
+  Answer as AnswerType,
 } from "@/types/global";
 import action from "../handlers/action";
-import { getUserSchema, PaginatedSearchParamsSchema } from "../validation";
+import {
+  GetAnswersSchema,
+  getUserAnswersSchema,
+  getUserQuestionsSchema,
+  getUserSchema,
+  getUsersTagsSchema,
+  PaginatedSearchParamsSchema,
+} from "../validation";
 import handleError from "../handlers/error";
-import { FilterQuery } from "mongoose";
+import { FilterQuery, PipelineStage, Types } from "mongoose";
 import { Answer, Question, User } from "@/database";
 import { User as UserType } from "../../types/global";
-import { GetUserParams } from "@/types/action";
+import {
+  GetUserAnswersParams,
+  GetUserParams,
+  GetUserQuestionsParams,
+  GetUserTagsParams,
+} from "@/types/action";
 
 export async function getUsers(
   params: PaginatedSearchParams
@@ -78,45 +92,178 @@ export async function getUsers(
   }
 }
 
-export async function getUser(
-  params: GetUserParams
-): Promise<
+export async function getUser(params: GetUserParams): Promise<
   ActionResponse<{
     user: UserType;
     totalQuestions: number;
     totalAnswers: number;
   }>
 > {
-    const validationResult = await action({
-        params,
-        schema: getUserSchema
-    });
+  const validationResult = await action({
+    params,
+    schema: getUserSchema,
+  });
 
-    if (validationResult instanceof Error) {
-        return handleError(validationResult) as ErrorResponse;
+  if (validationResult instanceof Error) {
+    return handleError(validationResult) as ErrorResponse;
+  }
+
+  const { userId } = validationResult.params!;
+
+  try {
+    const user = await User.findById(userId);
+
+    if (!user) {
+      throw new Error("User not found");
     }
 
-    const { userId } = validationResult.params!;
+    const totalQuestions = await Question.countDocuments({ author: userId });
+    const totalAnswers = await Answer.countDocuments({ author: userId });
 
-    try {
-        const user = await User.findById(userId);
+    return {
+      success: true,
+      data: {
+        user: JSON.parse(JSON.stringify(user)),
+        totalQuestions,
+        totalAnswers,
+      },
+    };
+  } catch (error) {
+    return handleError(error) as ErrorResponse;
+  }
+}
 
-        if (!user) {
-            throw new Error("User not found");
-        }
+export async function getUserQuestions(params: GetUserQuestionsParams): Promise<
+  ActionResponse<{
+    questions: QuestionType[];
+    isNext: boolean;
+  }>
+> {
+  const validationResult = await action({
+    params,
+    schema: getUserQuestionsSchema,
+  });
 
-        const totalQuestions = await Question.countDocuments({ author: userId });
-        const totalAnswers = await Answer.countDocuments({ author: userId });
+  if (validationResult instanceof Error) {
+    return handleError(validationResult) as ErrorResponse;
+  }
 
-        return {
-            success: true,
-            data: {
-                user: JSON.parse(JSON.stringify(user)),
-                totalQuestions,
-                totalAnswers,
-            }
-        }
-    } catch (error) {
-        return handleError(error) as ErrorResponse;
+  const { userId, page = 1, pageSize = 10 } = validationResult.params!;
+
+  const skip = (Number(page) - 1) * pageSize;
+  const limit = Number(pageSize);
+
+  try {
+    const totalQuestions = await Question.countDocuments({ author: userId });
+
+    const questions = await Question.find({ author: userId })
+      .populate("tags", "name")
+      .populate("author", "name image")
+      .sort({ createdAt: -1 }) // Sort by newest first
+      .skip(skip)
+      .limit(limit);
+
+    const isNext = totalQuestions > skip + questions.length;
+
+    return {
+      success: true,
+      data: {
+        questions: JSON.parse(JSON.stringify(questions)), // Ensure we return a clean JSON object
+        isNext,
+      },
+    };
+  } catch (error) {
+    return handleError(error) as ErrorResponse;
+  }
+}
+
+export async function getUserAnswers(params: GetUserAnswersParams): Promise<
+  ActionResponse<{
+    answers: AnswerType[];
+    isNext: boolean;
+  }>
+> {
+  const validationResult = await action({
+    params,
+    schema: getUserAnswersSchema,
+  });
+
+  if (validationResult instanceof Error) {
+    return handleError(validationResult) as ErrorResponse;
+  }
+
+  const { userId, page = 1, pageSize = 10 } = validationResult.params!;
+
+  const skip = (Number(page) - 1) * pageSize;
+  const limit = Number(pageSize);
+
+  try {
+    const totalAnswers = await Answer.countDocuments({ author: userId });
+
+    const answers = await Answer.find({ author: userId })
+      .populate("author", "_id name image")
+      .sort({ createdAt: -1 }) // Sort by newest first
+      .skip(skip)
+      .limit(limit);
+
+    const isNext = totalAnswers > skip + answers.length;
+
+    return {
+      success: true,
+      data: {
+        answers: JSON.parse(JSON.stringify(answers)), // Ensure we return a clean JSON object
+        isNext,
+      },
+    };
+  } catch (error) {
+    return handleError(error) as ErrorResponse;
+  }
+}
+
+export async function getUserTopTags(params: GetUserTagsParams): Promise<
+  ActionResponse<{
+    tags: { _id: string; name: string; count: number }[];
+  }>
+> {
+  const validationResult = await action({
+    params,
+    schema: getUsersTagsSchema,
+  });
+
+  if (validationResult instanceof Error) {
+    return handleError(validationResult) as ErrorResponse;
+  }
+
+  const { userId } = validationResult.params!;
+
+  try {
+    const pipeline: PipelineStage[] = [
+      { $match: { author: new Types.ObjectId(userId) } },
+      { $unwind: "$tags" },
+      { $group: { _id: "$tags", count: { $sum: 1 } } },
+      {
+        $lookup: {
+          from: "tags",
+          localField: "_id",
+          foreignField: "_id",
+          as: "tagInfo",
+        },
+      },
+      { $unwind: "$tagInfo" },
+      { $sort: { count: -1 } },
+      { $limit: 10 }, // Limit to top 10 tags
+      { $project: { _id: "$tagInfo._id", name: "$tagInfo.name", count: 1 } },
+    ];
+
+    const tags = await Question.aggregate(pipeline);
+
+    return {
+      success: true,
+      data: {
+        tags: JSON.parse(JSON.stringify(tags)), // Ensure we return a clean JSON object
+      },
     }
+  } catch (error) {
+    return handleError(error) as ErrorResponse;
+  }
 }

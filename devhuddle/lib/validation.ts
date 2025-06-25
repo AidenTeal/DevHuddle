@@ -200,3 +200,15 @@ export const CollectionBaseSchema = z.object({
 export const getUserSchema = z.object({
   userId: z.string().min(1, { message: "User ID is required." }),
 });
+
+export const getUserQuestionsSchema = PaginatedSearchParamsSchema.extend({
+  userId: z.string().min(1, { message: "User ID is required." }),
+});
+
+export const getUserAnswersSchema = PaginatedSearchParamsSchema.extend({
+  userId: z.string().min(1, { message: "User ID is required." }),
+});
+
+export const getUsersTagsSchema = z.object({
+  userId: z.string().min(1, { message: "User ID is required." }),
+});
