@@ -16,6 +16,9 @@ import { auth, signOut } from "@/auth";
 
 const LeftSidebar = async () => {
   const session = await auth();
+
+  const userId = session?.user?.id;
+
   console.log(session);
 
   return (
@@ -23,11 +26,11 @@ const LeftSidebar = async () => {
         <div className='flex flex-col min-sm:items-center h-[564px]'>
             <div>
                 <section className='flex h-full flex-col gap-6'>
-                    <NavLinks />
+                    <NavLinks userId={userId}/>
                 </section>
             </div>
         </div>
-        { !session ? (
+        { !userId ? (
             <div className='flex flex-col gap-3'>
                 <Link href={ROUTES.SIGN_IN}>
                     <Button className='small-medium btn-secondary min-h-[41px] w-full rounded-lg px-4 py-3 shadow-none cursor-pointer'>
@@ -58,10 +61,10 @@ const LeftSidebar = async () => {
             <form 
                 action={async () => {
                     "use server"
-                    await signOut({redirectTo: ROUTES.SIGN_IN})
+                    await signOut();
                     }}
                 >
-                <Button className='small-medium btn-secondary min-h-[41px] w-full rounded-lg px-4 py-3 shadow-none cursor-pointer'>
+                <Button type="submit" className='small-medium btn-secondary min-h-[41px] w-full rounded-lg px-4 py-3 shadow-none cursor-pointer'>
                     <Image
                         src="/icons/logout.png"
                         alt="Account"

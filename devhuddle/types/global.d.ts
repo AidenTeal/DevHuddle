@@ -1,10 +1,15 @@
+import { NextResponse } from "next/server";
+import { StringValidation } from "zod";
+
 type Question = {
     _id: string; 
-    title: string; 
+    title: string;
+    content: string; 
     description: string; 
     tags: Tag[]; 
     author: Author
     upvotes: number; 
+    downvotes: number;
     answers: number; 
     views: number; 
     createdAt: Date; 
@@ -21,6 +26,94 @@ type Author = {
 }
 
 type QuestionCardProps = {
-    key: string,
-    question: Question
+    key: string;
+    question: Question;
+    showActionBtns?: boolean;
+}
+
+type ActionResponse<T = null> = {
+    success: boolean;
+    data?: T;
+    error?: {
+        message: string;
+        details?: Record<string, string[]>;
+    };
+    status?: number;
+}
+
+type SuccessResponse<T = null> = ActionResponse<T> & { success: true };
+type ErrorResponse = ActionResponse<undefined> & { success: false };
+
+type APIErrorResponse = NextResponse<ErrorResponse>;
+type APIResponse<T = null> = NextResponse<SuccessResponse<T> | ErrorResponse>;
+
+type RouteParams = {
+    params: Promise<Record<string, string>>; 
+    searchParams: Promise<Record<string, string>>;
+}
+
+type PaginatedSearchParams = {
+    page?: number;
+    pageSize?: number;
+    query?: string;
+    filter?: string;
+    sort?: string;
+}
+
+type TagProps = {
+    _id: string,
+    name: string,
+    questions?: number,
+    showCount?: boolean,
+    compact?: boolean,
+    remove?: boolean,
+    isButton?: boolean,
+    handleRemove?: () => void,
+}
+
+interface Answer {
+    _id: string;
+    author: Author;
+    content: string;
+    createdAt: Date;
+    upvotes: number;
+    downvotes: number;
+    question: string;
+}
+
+interface User {
+    _id: string;
+    name: string;
+    username: string;
+    email: string;
+    bio?: string;
+    image?: string;
+    location?: string;
+    portfolio?: string;
+    reputation?: number;
+}
+
+interface Collection {
+    _id: string;
+    author: string | Author;
+    question: Question;
+}
+
+interface User {
+    _id: string;
+    name: string;
+    username: string;
+    email: string;
+    bio?: string;
+    image?: string;
+    location?: string;
+    portfolio?: string;
+    reputation?: number;
+    createdAt: Date;
+}
+
+interface BadgeCounts {
+    GOLD: number;
+    SILVER: number;
+    BRONZE: number;
 }

@@ -3,13 +3,18 @@ import Link from 'next/link'
 import React from 'react'
 import TagCard from './TagCard'
 import Metric from '../Metric'
+import { QuestionCardProps } from '@/types/global'
+import { getTimeStamp } from '@/lib/utils'
+import EditDeleteAction from '../user/EditDeleteAction'
 
-const QuestionCard = ({question}: QuestionCardProps) => {
+// TODO: Make sure this fills in author information for credentials and not just oAuth
+
+const QuestionCard = ({question, showActionBtns}: QuestionCardProps) => {
   return (
     <div className='card-wrapper rounded-[10px] p-9 sm:px-11 background-light800_darkgradient'>
-      <div className='flex flex-col-reverse justify-between items-start gap-5 sm:flex-row'>
-        <div>
-            <span className='subtle-regular text-dark400_light700 line-clamp-1 flex sm:hidden'>{question.createdAt.toDateString()}</span>
+      <div className='flex flex-col-reverse justify-between items-center gap-5 sm:flex-row'>
+        <div className='flex-1'>
+            <span className='subtle-regular text-dark400_light700 line-clamp-1 flex sm:hidden'>{getTimeStamp(question.createdAt)}</span>
 
             <h3 className='sm:h3-semibold base-semibold text-dark200_light900 line-clamp-1 flex-1'>
                 <Link
@@ -19,6 +24,13 @@ const QuestionCard = ({question}: QuestionCardProps) => {
                 </Link>
             </h3>
         </div>
+
+        {showActionBtns && (
+          <EditDeleteAction 
+            type="Question"
+            itemId={question._id}
+          />
+        )}
       </div>
 
       <div className='mt-3.5 flex w-full flex-wrap gap-2'>
@@ -34,13 +46,14 @@ const QuestionCard = ({question}: QuestionCardProps) => {
 
       <div className='flex-between mt-6 w-full flex-wrap gap-3'>
         <Metric 
-            imgUrl={question.author.image}
-            alt={question.author.name}
-            value={question.author.name}
-            title={`• asked ${question.createdAt.toDateString()}`}
+            imgUrl={question.author.image || "/icons/user.svg"}
+            alt={question.author.name || "Anonymous"}
+            value={question.author.name || "Anonymous"}
+            title={`• asked ${getTimeStamp(question.createdAt)}`}
             href={ROUTES.PROFILE(question.author._id)}
             textStyles="body-medium text-dark400_light700"
             isAuthor
+            titleStyles='max-sm:hidden'
         />
 
         <div className='flex items-center gap-3 max-sm:flex-wrap max-sm:justify-start'>
@@ -48,7 +61,7 @@ const QuestionCard = ({question}: QuestionCardProps) => {
                 imgUrl="/icons/like.svg"
                 alt="like"
                 value={question.upvotes}
-                title=" Votes"
+                title="Votes"
                 textStyles="small-medium text-dark400_light800"
             />
             <Metric 

@@ -8,9 +8,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import React from "react";
 
-const NavLinks = ({ isMobileNav = false }: { isMobileNav?: boolean }) => {
+const NavLinks = ({ isMobileNav = false, userId }: { isMobileNav?: boolean, userId?: string }) => {
   const pathname = usePathname();
-  const userId = 1;
 
   return (
     <>
@@ -32,7 +31,7 @@ const NavLinks = ({ isMobileNav = false }: { isMobileNav?: boolean }) => {
               isActive
                 ? "primary-gradient rounded-lg text-light-900"
                 : "text-dark300_light900",
-              "flex items-center justify-start gap-4 bg-transparent p-4"
+              "flex items-center justify-start gap-4 bg-transparent p-4",
             )}
           >
             <Image

@@ -1,0 +1,160 @@
+import AllAnswers from "@/components/answers/AllAnswers";
+import TagCard from "@/components/cards/TagCard";
+import Preview from "@/components/editor/Preview";
+import AnswerForm from "@/components/forms/AnswerForm";
+import Metric from "@/components/Metric";
+import UserAvatar from "@/components/UserAvatar";
+import Votes from "@/components/votes/Votes";
+import ROUTES from "@/constants/routes";
+import { Question } from "@/types/global";
+import { getAnswers } from "@/lib/actions/answer.action";
+import { getQuestion, incrementViews } from "@/lib/actions/question.action";
+import { formatNumber, getTimeStamp } from "@/lib/utils";
+import { RouteParams } from "@/types/global";
+import Link from "next/link";
+import { redirect } from "next/navigation";
+import { after } from "next/server";
+import React, { Suspense } from "react";
+import { hasVoted } from "@/lib/actions/vote.action";
+import SaveQuestion from "@/components/questions/SaveQuestion";
+import { hasSavedQuestion } from "@/lib/actions/collection.action";
+
+const QuestionDetails = async ({ params, searchParams }: RouteParams) => {
+  const { id } = await params;
+
+  const { success, data } = await getQuestion({
+    questionId: id,
+  });
+
+  const { page, pageSize, filter } = await searchParams;
+
+  after(async () => await incrementViews({ questionId: id }));
+
+  if (!success || !data) return redirect("/404");
+
+  const {
+    success: successAnswer,
+    data: answersResult,
+    error: answersError,
+  } = await getAnswers({
+    questionId: id,
+    page: Number(page) || 1,
+    pageSize: Number(pageSize) || 10,
+    filter,
+  });
+
+  const hasVotedPromise = hasVoted({
+    targetId: data._id,
+    targetType: "question",
+  });
+
+  const hasSavedQuestionPromise = hasSavedQuestion({
+    questionId: data._id,
+  })
+
+  console.log("question content", data.content);
+
+  const sampleQuestion = data;
+
+  return (
+    <>
+      <div className="flex-start w-full flex-col">
+        <div className="flex w-full flex-col-reverse justify-between">
+          <div className="flex items-center justify-start gap-1">
+            <UserAvatar
+              id={sampleQuestion.author._id}
+              name={sampleQuestion.author.name}
+              imageUrl={sampleQuestion.author.image}
+              className="size-[22px]"
+              fallbackClassName="text-[10px]"
+            />
+
+            <Link href={ROUTES.PROFILE(sampleQuestion.author._id)}>
+              <p className="paragraph-semibold text-dark300_light700">
+                {sampleQuestion.author.name}
+              </p>
+            </Link>
+          </div>
+
+          <div className="flex justify-end items-center gap-4">
+            <Suspense fallback={<div>Loading...</div>}>
+              <Votes
+                upvotes={data.upvotes}   
+                downvotes={data.downvotes}
+                targetType="question"
+                targetId={data._id}
+                hasVotedPromise={hasVotedPromise}
+              />
+            </Suspense>
+
+            <Suspense fallback={<div>Loading...</div>}>
+              <SaveQuestion questionId={data._id} hasSavedQuestionPromise={hasSavedQuestionPromise}/>
+            </Suspense>
+
+          </div>
+        </div>
+        <h2 className="h2-semibold text-dark200_light900 mt-3.5 w-full">
+          {sampleQuestion.title}
+        </h2>
+      </div>
+
+      <div className="mb-8 mt-5 flex flex-wrap gap-4">
+        <Metric
+          imgUrl="/icons/clock.svg"
+          alt="clock icon"
+          value={` asked ${getTimeStamp(new Date(sampleQuestion.createdAt))}`}
+          title=""
+          textStyles="small-regular text-dark400_light700"
+        />
+        <Metric
+          imgUrl="/icons/message.svg"
+          alt="message icon"
+          value={sampleQuestion.answers}
+          title=""
+          textStyles="small-regular text-dark400_light700"
+        />
+        <Metric
+          imgUrl="/icons/eye.svg"
+          alt="eye icon"
+          value={formatNumber(sampleQuestion.views)}
+          title=""
+          textStyles="small-regular text-dark400_light700"
+        />
+      </div>
+
+      <Preview content={sampleQuestion.content} />
+
+      <div className="mt-8 flex flex-wrap gap-2">
+        {sampleQuestion.tags.map((tag) => (
+          <TagCard
+            key={tag._id}
+            _id={tag._id as string}
+            name={tag.name}
+            compact
+          />
+        ))}
+      </div>
+
+      <section className="my-5">
+        <AllAnswers
+          page={Number(page) || 1}
+          isNext={answersResult?.isNext || false}
+          data={answersResult?.answers}
+          success={successAnswer}
+          error={answersError}
+          totalAnswers={answersResult?.totalAnswers || 0}
+        />
+      </section>
+
+      <section className="my-5">
+        <AnswerForm
+          questionId={data._id}
+          questionTitle={data.title}
+          questionContent={data.content}
+        />
+      </section>
+    </>
+  );
+};
+
+export default QuestionDetails;
