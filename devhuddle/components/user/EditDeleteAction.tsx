@@ -11,6 +11,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { deleteAnswer } from "@/lib/actions/answer.action";
+import { deleteQuestion } from "@/lib/actions/question.action";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -31,10 +33,27 @@ const EditDeleteAction = ({ type, itemId }: Props) => {
   const handleDelete = async () => {
     if (type === "Question") {
         // Call API to delete question
-        toast.success("Question deleted successfully!");
+
+        const { success } = await deleteQuestion({
+          questionId: itemId,
+        })
+
+        if (success) {
+          toast.success("Question deleted successfully!");
+        } else {
+          toast.error("Failed to delete question. Please try again.");
+        }
     } else if (type === "Answer") {
         // Call API to delete answer
-        toast.success("Answer deleted successfully!");
+        const { success } = await deleteAnswer({
+          answerId: itemId,
+        });
+
+        if (success) {
+          toast.success("Answer deleted successfully!");
+        } else {
+          toast.error("Failed to delete answer. Please try again.");
+        }
     }
   };
 

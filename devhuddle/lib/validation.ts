@@ -1,4 +1,6 @@
 import { z } from "zod";
+import action from "./handlers/action";
+import { InteractionActionEnums } from "@/database/interaction.model";
 
 export const SignInSchema = z.object({
   email: z
@@ -211,4 +213,19 @@ export const getUserAnswersSchema = PaginatedSearchParamsSchema.extend({
 
 export const getUsersTagsSchema = z.object({
   userId: z.string().min(1, { message: "User ID is required." }),
+});
+
+export const DeleteQuestionSchema = z.object({
+  questionId: z.string().min(1, { message: "Question ID is required." }),
+});
+
+export const DeleteAnswerSchema = z.object({
+  answerId: z.string().min(1, { message: "Answer ID is required." }),
+});
+
+export const CreateInteractionSchema = z.object({
+  authorId: z.string().min(1, { message: "User ID is required." }),
+  action: z.enum(InteractionActionEnums),
+  actionId: z.string().min(1, { message: "Action ID is required." }),
+  actionTarget: z.enum(["question", "answer"]),
 });

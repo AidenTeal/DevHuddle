@@ -145,6 +145,7 @@ const Profile = async ({ params, searchParams }: RouteParams) => {
           SILVER: 0,
           BRONZE: 0,
         }}
+        reputation={user.reputation}
       />
 
       <section className="mt-10 flex gap-10">

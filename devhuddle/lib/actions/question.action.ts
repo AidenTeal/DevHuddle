@@ -2,6 +2,7 @@
 
 import {
   CreateQuestionParams,
+  DeleteQuestionParams,
   EditQuestionParams,
   GetQuestionParams,
   IncrementViewsParams,
@@ -9,6 +10,7 @@ import {
 import action from "../handlers/action";
 import {
   AskQuestionSchema,
+  DeleteQuestionSchema,
   EditQuestionSchema,
   GetQuestionSchema,
   IncrementViewsSchema,
@@ -29,6 +31,7 @@ import { NotFoundError } from "../http-errors";
 import { revalidatePath } from "next/cache";
 import ROUTES from "@/constants/routes";
 import dbConnect from "../mongoose";
+import { Answer, Collection, Vote } from "@/database";
 
 export async function createQuestion(
   params: CreateQuestionParams
@@ -220,7 +223,9 @@ export async function getQuestion(
   const { questionId } = validationResult.params!;
 
   try {
-    const question = await Question.findById(questionId).populate("tags").populate("author", "_id name image");
+    const question = await Question.findById(questionId)
+      .populate("tags")
+      .populate("author", "_id name image");
 
     if (!question) {
       throw new NotFoundError("Question");
@@ -308,7 +313,6 @@ export async function getQuestions(
   }
 }
 
-
 export async function incrementViews(
   params: IncrementViewsParams
 ): Promise<ActionResponse<{ views: number }>> {
@@ -343,17 +347,126 @@ export async function incrementViews(
   }
 }
 
-export async function getHotQuestions(): Promise<ActionResponse<QuestionType[]>> {
+export async function getHotQuestions(): Promise<
+  ActionResponse<QuestionType[]>
+> {
   try {
     await dbConnect();
 
-    const questions = await Question.find().sort({ views: -1, upvotes: -1}).limit(5);
+    const questions = await Question.find()
+      .sort({ views: -1, upvotes: -1 })
+      .limit(5);
 
     return {
       success: true,
       data: JSON.parse(JSON.stringify(questions)),
-    }
+    };
   } catch (error) {
     return handleError(error) as ErrorResponse;
+  }
+}
+
+export async function deleteQuestion(
+  params: DeleteQuestionParams
+): Promise<ActionResponse> {
+  const validationResult = await action({
+    params,
+    schema: DeleteQuestionSchema,
+    authorize: true,
+  });
+
+  if (validationResult instanceof Error) {
+    return handleError(validationResult) as ErrorResponse;
+  }
+
+  // Destructure validation result
+  const { questionId } = validationResult.params!;
+  const userId = validationResult?.session?.user?.id;
+
+  // check that userId is the same as question Id, if not, then return
+  const session = await mongoose.startSession();
+
+  try {
+    session.startTransaction();
+    const question = await Question.findById(questionId).session(session);
+
+    if (!question) {
+      throw new NotFoundError("Question");
+    }
+
+    if (question.author.toString() !== userId) {
+      throw new Error("You are not authorized to delete this question");
+    }
+
+    // Need to do a few things here:
+    // 1. Decrement the tag count by 1 for each tag associated with the question
+    // 2. Delete the question from any users collection who has saved it
+    // 3. Remove from TagQuestion model
+
+    // 1.
+    const tagIds = question.tags.map((tag: ITagDoc) => tag._id);
+    await Tag.updateMany(
+      { _id: { $in: tagIds } },
+      { $inc: { questions: -1 } },
+      { session }
+    );
+
+    // Remove tags that have no questions left
+    await Tag.deleteMany({ _id: { $in: tagIds }, questions: 0 }, { session });
+
+    // 2. Remove the question from any users collection who has saved it
+    const collections = await Collection.find({ question: questionId });
+
+    if (collections) {
+      const collectionIds = collections.map((collection) => collection._id);
+      await Collection.deleteMany({ _id: { $in: collectionIds } }).session(
+        session
+      );
+    }
+
+    // 3.
+    await TagQuestion.deleteMany({ question: questionId }).session(session);
+
+    // 4. Remove votes associated with the question
+    await Vote.deleteMany({
+      actionId: questionId,
+      actionType: "question",
+    }).session(session);
+
+    // Remove all answers and their votes of the question
+    const answers = await Answer.find({ question: questionId }).session(
+      session
+    );
+
+    if (answers.length > 0) {
+      await Answer.deleteMany({ question: questionId }).session(session);
+
+      await Vote.deleteMany({
+        actionId: { $in: answers.map((answer) => answer.id) },
+        actionType: "answer",
+      }).session(session);
+    }
+
+    // Finally, delete the question
+    await Question.deleteOne(
+      {
+        _id: questionId,
+      },
+      { session }
+    );
+
+    // commit session at the end
+    await session.commitTransaction();
+    // Revalidate to reflect immediate changes on UI
+    revalidatePath(`/profile/${userId}`);
+
+    return {
+      success: true,
+    };
+  } catch (error) {
+    await session.abortTransaction();
+    return handleError(error) as ErrorResponse;
+  } finally {
+    session.endSession();
   }
 }
